@@ -5,6 +5,8 @@ from .core.database import engine, Base
 
 # Import Public Routers
 from .routers import projects, experiences, skills, education, contact
+# Import Admin Routers
+from .routers import admin_auth
 
 app = FastAPI(title=settings.APP_NAME)
 
@@ -36,3 +38,6 @@ app.include_router(experiences.router, prefix="/api/experiences", tags=["Experie
 app.include_router(skills.router, prefix="/api/skills", tags=["Skills"])
 app.include_router(education.router, prefix="/api/education", tags=["Education"])
 app.include_router(contact.router, prefix="/api/contact", tags=["Contact"])
+
+# --- ADMIN API ROUTES ---
+app.include_router(admin_auth.router, prefix="/api/admin", tags=["Admin Auth"])
