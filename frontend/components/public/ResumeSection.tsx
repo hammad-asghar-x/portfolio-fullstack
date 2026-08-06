@@ -1,6 +1,18 @@
 import Icon from '../ui/Icon';
 
-export default function ResumeSection() {
+interface Skill { id: number; name: string; category: string; level: string; }
+interface Experience { id: number; company: string; role: string; period: string; description: string; }
+interface Education { id: number; institution: string; degree: string; period: string; description: string; }
+
+export default function ResumeSection({ skills, experience, education }: { skills: Skill[], experience: Experience[], education: Education[] }) {
+  // Group skills by category
+  const skillGroups = skills.reduce((acc, skill) => {
+    const cat = skill.category || 'OTHER';
+    if (!acc[cat]) acc[cat] = [];
+    acc[cat].push(skill.name);
+    return acc;
+  }, {} as Record<string, string[]>);
+
   return (
     <section className="mt-8">
       <h1 className="text-3xl font-bold tracking-tight">Resume</h1>
@@ -11,15 +23,12 @@ export default function ResumeSection() {
         Education
       </h2>
       <div className="mt-6 space-y-8 border-l border-[#262626] ml-1.5 pl-6 relative">
-        {[
-          { title: 'YOUR_DEGREE — YOUR_UNIVERSITY', date: '2019 — 2023', desc: 'Your education description goes here.' },
-          { title: 'YOUR_DIPLOMA — YOUR_SCHOOL', date: '2017 — 2019', desc: 'Second education entry.' }
-        ].map((edu, i) => (
-          <div key={i} className="relative">
+        {education.length === 0 ? <p className="text-gray-500">No education entries yet.</p> : education.map((edu) => (
+          <div key={edu.id} className="relative">
             <span className="absolute -left-[31px] top-1 w-3 h-3 rounded-full border-2 border-[#E8B44C] bg-[#050505] shadow-[0_0_10px_rgba(232,180,76,0.3)]"></span>
-            <div className="font-semibold">{edu.title}</div>
-            <div className="text-xs gold mt-1 font-medium">{edu.date}</div>
-            <p className="text-sm text-[#a3a3a3] mt-2 font-light">{edu.desc}</p>
+            <div className="font-semibold">{edu.degree} — {edu.institution}</div>
+            <div className="text-xs gold mt-1 font-medium">{edu.period}</div>
+            <p className="text-sm text-[#a3a3a3] mt-2 font-light">{edu.description}</p>
           </div>
         ))}
       </div>
@@ -29,25 +38,23 @@ export default function ResumeSection() {
         Experience
       </h2>
       <div className="mt-6 border-l border-[#262626] ml-1.5 pl-6 relative">
-        <div className="relative">
-          <span className="absolute -left-[31px] top-1 w-3 h-3 rounded-full border-2 border-[#E8B44C] bg-[#050505] shadow-[0_0_10px_rgba(232,180,76,0.3)]"></span>
-          <div className="font-semibold">YOUR_ROLE — YOUR_COMPANY</div>
-          <div className="text-xs gold mt-1 font-medium">2024 — Present</div>
-          <p className="text-sm text-[#a3a3a3] mt-2 font-light">Your single experience entry renders perfectly — one marker, no connector needed.</p>
-        </div>
+        {experience.length === 0 ? <p className="text-gray-500">No experience entries yet.</p> : experience.map((exp) => (
+          <div key={exp.id} className="relative">
+            <span className="absolute -left-[31px] top-1 w-3 h-3 rounded-full border-2 border-[#E8B44C] bg-[#050505] shadow-[0_0_10px_rgba(232,180,76,0.3)]"></span>
+            <div className="font-semibold">{exp.role} — {exp.company}</div>
+            <div className="text-xs gold mt-1 font-medium">{exp.period}</div>
+            <p className="text-sm text-[#a3a3a3] mt-2 font-light">{exp.description}</p>
+          </div>
+        ))}
       </div>
 
       <h2 className="text-xl font-bold mt-10 tracking-tight">Skills & Tools</h2>
       <div className="grid md:grid-cols-3 gap-4 mt-5">
-        {[
-          { cat: 'FRONTEND', skills: ['TypeScript', 'React', 'Next.js', 'Tailwind'] },
-          { cat: 'BACKEND', skills: ['FastAPI', 'PostgreSQL', 'REST APIs'] },
-          { cat: 'WORKFLOW', skills: ['Git', 'Figma', 'CI/CD'] }
-        ].map((group, i) => (
+        {Object.keys(skillGroups).length === 0 ? <p className="text-gray-500 col-span-3">No skills added yet.</p> : Object.entries(skillGroups).map(([cat, skillList], i) => (
           <div key={i} className="bg-[#151515] border border-[#262626] rounded-xl p-5 hover:border-[#3a3a3a] transition-colors">
-            <div className="text-xs tracking-widest gold font-bold">{group.cat}</div>
+            <div className="text-xs tracking-widest gold font-bold">{cat}</div>
             <div className="flex flex-wrap gap-2 mt-3">
-              {group.skills.map((skill, j) => (
+              {skillList.map((skill, j) => (
                 <span key={j} className="text-xs bg-[#222] rounded-md px-2.5 py-1 text-gray-300 border border-[#333]">{skill}</span>
               ))}
             </div>

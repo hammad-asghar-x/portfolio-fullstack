@@ -1,28 +1,56 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Lock, User } from 'lucide-react';
+import { adminFetch } from '@/lib/api';
+import { redirectIfAuth } from '@/lib/auth';
 
 export default function LoginPage() {
   const router = useRouter();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  // Redirect if already logged in
+  useEffect(() => {
+    redirectIfAuth();
+  }, []);
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Mock login for UI testing
-    if (username === 'admin' && password === 'admin123') {
-      router.push('/admin/dashboard');
-    } else {
-      alert('Invalid credentials. Try admin / admin123');
+    setError('');
+    setLoading(true);
+
+    try {
+      const data = await adminFetch('/api/admin/login', {
+        method: 'POST',
+        body: JSON.stringify({ username, password }),
+      });
+
+      if (data.access_token) {
+        localStorage.setItem('admin_token', data.access_token);
+        router.push('/admin/dashboard');
+      } else {
+        setError('Login failed. No token received.');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Invalid credentials');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
+    <div className="w-full p-4 md:p-6 flex items-center justify-center min-h-screen bg-[#050505]">
       <div className="w-full max-w-md bg-[#151515] p-8 rounded-xl border border-[#262626] shadow-xl">
-        <h1 className="text-2xl font-bold text-white mb-6 text-center">Admin Login</h1>
+        <div className="text-center mb-6">
+          <h1 className="text-2xl font-bold text-white">
+            <span className="text-[#e8b44c]">YN</span> Admin
+          </h1>
+          <p className="text-gray-400 text-sm mt-2">Sign in to manage your portfolio</p>
+        </div>
         
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
@@ -55,11 +83,14 @@ export default function LoginPage() {
             </div>
           </div>
 
+          {error && <p className="text-sm text-red-400 text-center">{error}</p>}
+
           <button
             type="submit"
-            className="w-full bg-[#e8b44c] hover:bg-[#d4a345] text-black font-bold py-2 rounded-lg transition-colors mt-4"
+            disabled={loading}
+            className="w-full bg-[#e8b44c] hover:bg-[#d4a345] text-black font-bold py-2 rounded-lg transition-colors mt-4 disabled:opacity-50"
           >
-            Sign In
+            {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
       </div>

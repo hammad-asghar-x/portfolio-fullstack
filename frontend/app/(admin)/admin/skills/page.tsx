@@ -1,46 +1,94 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
 import DataTable from '@/components/admin/DataTable';
 import Modal from '@/components/admin/Modal';
+import { adminFetch } from '@/lib/api';
 
-const initialSkills = [
-  { id: 1, name: 'TypeScript', category: 'FRONTEND', level: 'Advanced' },
-  { id: 2, name: 'FastAPI', category: 'BACKEND', level: 'Intermediate' },
-];
+interface Skill {
+  id: number;
+  name: string;
+  category: string;
+  level: string;
+  is_published: boolean;
+}
 
 export default function SkillsPage() {
-  const [items, setItems] = useState(initialSkills);
+  const [skills, setSkills] = useState<Skill[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState<any>(null);
-  const [formData, setFormData] = useState({ name: '', category: 'FRONTEND', level: 'Intermediate' });
+  const [editingItem, setEditingItem] = useState<Skill | null>(null);
+  const [loading, setLoading] = useState(true);
+  
+  const [formData, setFormData] = useState({
+    name: '', category: 'FRONTEND', level: 'Intermediate', is_published: true
+  });
+
+  useEffect(() => {
+    loadSkills();
+  }, []);
+
+  const loadSkills = async () => {
+    try {
+      setLoading(true);
+      const data = await adminFetch('/api/admin/skills');
+      setSkills(data || []);
+    } catch (error) {
+      console.error("Failed to load skills:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleOpenAdd = () => {
     setEditingItem(null);
-    setFormData({ name: '', category: 'FRONTEND', level: 'Intermediate' });
+    setFormData({ name: '', category: 'FRONTEND', level: 'Intermediate', is_published: true });
     setIsModalOpen(true);
   };
 
-  const handleOpenEdit = (item: any) => {
+  const handleOpenEdit = (item: Skill) => {
     setEditingItem(item);
-    setFormData(item);
+    setFormData({
+      name: item.name,
+      category: item.category,
+      level: item.level,
+      is_published: item.is_published
+    });
     setIsModalOpen(true);
   };
 
-  const handleDelete = (id: number) => {
-    if (confirm('Are you sure?')) setItems(items.filter(i => i.id !== id));
+  const handleDelete = async (id: number) => {
+    if (!confirm('Are you sure?')) return;
+    try {
+      await adminFetch(`/api/admin/skills/${id}`, { method: 'DELETE' });
+      loadSkills();
+    } catch (error) {
+      alert('Failed to delete');
+    }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editingItem) {
-      setItems(items.map(i => i.id === editingItem.id ? { ...i, ...formData } : i));
-    } else {
-      setItems([...items, { id: Date.now(), ...formData }]);
+    try {
+      if (editingItem) {
+        await adminFetch(`/api/admin/skills/${editingItem.id}`, {
+          method: 'PUT',
+          body: JSON.stringify(formData),
+        });
+      } else {
+        await adminFetch('/api/admin/skills', {
+          method: 'POST',
+          body: JSON.stringify(formData),
+        });
+      }
+      setIsModalOpen(false);
+      loadSkills();
+    } catch (error: any) {
+      alert(error.message || 'Failed to save');
     }
-    setIsModalOpen(false);
   };
+
+  if (loading) return <div className="text-gray-400 py-8">Loading skills...</div>;
 
   return (
     <div>
@@ -51,20 +99,33 @@ export default function SkillsPage() {
         </button>
       </div>
 
-      <DataTable headers={['Skill Name', 'Category', 'Level', 'Actions']}>
-        {items.map((item) => (
-          <tr key={item.id} className="hover:bg-[#1a1a1a] transition-colors">
-            <td className="px-6 py-4 font-medium text-white">{item.name}</td>
-            <td className="px-6 py-4"><span className="text-xs bg-[#1a150a] text-[#e8b44c] border border-[#3a2f18] px-2 py-1 rounded">{item.category}</span></td>
-            <td className="px-6 py-4">{item.level}</td>
-            <td className="px-6 py-4">
-              <div className="flex gap-3">
-                <button onClick={() => handleOpenEdit(item)} className="text-gray-400 hover:text-[#e8b44c]"><Edit2 size={16} /></button>
-                <button onClick={() => handleDelete(item.id)} className="text-gray-400 hover:text-red-400"><Trash2 size={16} /></button>
-              </div>
+      <DataTable headers={['Skill Name', 'Category', 'Level', 'Status', 'Actions']}>
+        {skills.length === 0 ? (
+          <tr>
+            <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
+              No skills found.
             </td>
           </tr>
-        ))}
+        ) : (
+          skills.map((item) => (
+            <tr key={item.id} className="hover:bg-[#1a1a1a] transition-colors">
+              <td className="px-6 py-4 font-medium text-white">{item.name}</td>
+              <td className="px-6 py-4"><span className="text-xs bg-[#1a150a] text-[#e8b44c] border border-[#3a2f18] px-2 py-1 rounded">{item.category}</span></td>
+              <td className="px-6 py-4">{item.level}</td>
+              <td className="px-6 py-4">
+                <span className={`text-xs px-2 py-1 rounded border ${item.is_published ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-gray-500/10 text-gray-400 border-gray-500/20'}`}>
+                  {item.is_published ? 'Published' : 'Draft'}
+                </span>
+              </td>
+              <td className="px-6 py-4">
+                <div className="flex gap-3">
+                  <button onClick={() => handleOpenEdit(item)} className="text-gray-400 hover:text-[#e8b44c]"><Edit2 size={16} /></button>
+                  <button onClick={() => handleDelete(item.id)} className="text-gray-400 hover:text-red-400"><Trash2 size={16} /></button>
+                </div>
+              </td>
+            </tr>
+          ))
+        )}
       </DataTable>
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingItem ? 'Edit Skill' : 'Add Skill'}>
@@ -80,6 +141,8 @@ export default function SkillsPage() {
                 <option>FRONTEND</option>
                 <option>BACKEND</option>
                 <option>WORKFLOW</option>
+                <option>AI/ML</option>
+                <option>OTHER</option>
               </select>
             </div>
             <div>
@@ -88,8 +151,13 @@ export default function SkillsPage() {
                 <option>Beginner</option>
                 <option>Intermediate</option>
                 <option>Advanced</option>
+                <option>Expert</option>
               </select>
             </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <input type="checkbox" checked={formData.is_published} onChange={(e) => setFormData({...formData, is_published: e.target.checked})} className="accent-[#e8b44c]" />
+            <label className="text-sm text-gray-300 cursor-pointer">Published</label>
           </div>
           <div className="flex justify-end gap-3 pt-4">
             <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-sm text-gray-400 hover:text-white">Cancel</button>

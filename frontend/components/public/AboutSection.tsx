@@ -12,7 +12,7 @@ export default function AboutSection() {
         Day to day I turn product requirements into reliable React and TypeScript applications — from marketing sites and dashboards to customer-facing tools.
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8">
-        {[{ v: '10+', l: 'Years experience' }, { v: '48+', l: 'Projects shipped' }, { v: '32', l: 'Happy clients' }].map((stat, i) => (
+        {[{ v: '2+', l: 'Years experience' }, { v: '10+', l: 'Projects shipped' }, { v: '5+', l: 'Happy clients' }].map((stat, i) => (
           <div key={i} className="bg-[#151515] border border-[#262626] rounded-xl p-5 text-center hover:border-[#3a3a3a] transition-colors">
             <div className="text-2xl font-bold gold">{stat.v}</div>
             <div className="text-xs text-gray-500 mt-1 uppercase tracking-wider">{stat.l}</div>

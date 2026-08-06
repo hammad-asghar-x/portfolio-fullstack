@@ -1,45 +1,96 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
 import DataTable from '@/components/admin/DataTable';
 import Modal from '@/components/admin/Modal';
+import { adminFetch } from '@/lib/api';
 
-const initialExperience = [
-  { id: 1, company: 'YOUR_COMPANY', role: 'YOUR_ROLE', period: '2024 — Present', description: 'Your single experience entry...' },
-];
+interface Experience {
+  id: number;
+  company: string;
+  role: string;
+  period: string;
+  description: string;
+  is_published: boolean;
+}
 
 export default function ExperiencePage() {
-  const [items, setItems] = useState(initialExperience);
+  const [experiences, setExperiences] = useState<Experience[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState<any>(null);
-  const [formData, setFormData] = useState({ company: '', role: '', period: '', description: '' });
+  const [editingItem, setEditingItem] = useState<Experience | null>(null);
+  const [loading, setLoading] = useState(true);
+  
+  const [formData, setFormData] = useState({
+    company: '', role: '', period: '', description: '', is_published: true
+  });
+
+  useEffect(() => {
+    loadExperiences();
+  }, []);
+
+  const loadExperiences = async () => {
+    try {
+      setLoading(true);
+      const data = await adminFetch('/api/admin/experiences');
+      setExperiences(data || []);
+    } catch (error) {
+      console.error("Failed to load experiences:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleOpenAdd = () => {
     setEditingItem(null);
-    setFormData({ company: '', role: '', period: '', description: '' });
+    setFormData({ company: '', role: '', period: '', description: '', is_published: true });
     setIsModalOpen(true);
   };
 
-  const handleOpenEdit = (item: any) => {
+  const handleOpenEdit = (item: Experience) => {
     setEditingItem(item);
-    setFormData(item);
+    setFormData({
+      company: item.company,
+      role: item.role,
+      period: item.period,
+      description: item.description,
+      is_published: item.is_published
+    });
     setIsModalOpen(true);
   };
 
-  const handleDelete = (id: number) => {
-    if (confirm('Are you sure?')) setItems(items.filter(i => i.id !== id));
+  const handleDelete = async (id: number) => {
+    if (!confirm('Are you sure?')) return;
+    try {
+      await adminFetch(`/api/admin/experiences/${id}`, { method: 'DELETE' });
+      loadExperiences();
+    } catch (error) {
+      alert('Failed to delete');
+    }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editingItem) {
-      setItems(items.map(i => i.id === editingItem.id ? { ...i, ...formData } : i));
-    } else {
-      setItems([...items, { id: Date.now(), ...formData }]);
+    try {
+      if (editingItem) {
+        await adminFetch(`/api/admin/experiences/${editingItem.id}`, {
+          method: 'PUT',
+          body: JSON.stringify(formData),
+        });
+      } else {
+        await adminFetch('/api/admin/experiences', {
+          method: 'POST',
+          body: JSON.stringify(formData),
+        });
+      }
+      setIsModalOpen(false);
+      loadExperiences();
+    } catch (error: any) {
+      alert(error.message || 'Failed to save');
     }
-    setIsModalOpen(false);
   };
+
+  if (loading) return <div className="text-gray-400 py-8">Loading experiences...</div>;
 
   return (
     <div>
@@ -50,20 +101,33 @@ export default function ExperiencePage() {
         </button>
       </div>
 
-      <DataTable headers={['Role', 'Company', 'Period', 'Actions']}>
-        {items.map((item) => (
-          <tr key={item.id} className="hover:bg-[#1a1a1a] transition-colors">
-            <td className="px-6 py-4 font-medium text-white">{item.role}</td>
-            <td className="px-6 py-4">{item.company}</td>
-            <td className="px-6 py-4 text-[#e8b44c]">{item.period}</td>
-            <td className="px-6 py-4">
-              <div className="flex gap-3">
-                <button onClick={() => handleOpenEdit(item)} className="text-gray-400 hover:text-[#e8b44c]"><Edit2 size={16} /></button>
-                <button onClick={() => handleDelete(item.id)} className="text-gray-400 hover:text-red-400"><Trash2 size={16} /></button>
-              </div>
+      <DataTable headers={['Role', 'Company', 'Period', 'Status', 'Actions']}>
+        {experiences.length === 0 ? (
+          <tr>
+            <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
+              No experience entries found.
             </td>
           </tr>
-        ))}
+        ) : (
+          experiences.map((item) => (
+            <tr key={item.id} className="hover:bg-[#1a1a1a] transition-colors">
+              <td className="px-6 py-4 font-medium text-white">{item.role}</td>
+              <td className="px-6 py-4">{item.company}</td>
+              <td className="px-6 py-4 text-[#e8b44c]">{item.period}</td>
+              <td className="px-6 py-4">
+                <span className={`text-xs px-2 py-1 rounded border ${item.is_published ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-gray-500/10 text-gray-400 border-gray-500/20'}`}>
+                  {item.is_published ? 'Published' : 'Draft'}
+                </span>
+              </td>
+              <td className="px-6 py-4">
+                <div className="flex gap-3">
+                  <button onClick={() => handleOpenEdit(item)} className="text-gray-400 hover:text-[#e8b44c]"><Edit2 size={16} /></button>
+                  <button onClick={() => handleDelete(item.id)} className="text-gray-400 hover:text-red-400"><Trash2 size={16} /></button>
+                </div>
+              </td>
+            </tr>
+          ))
+        )}
       </DataTable>
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingItem ? 'Edit Experience' : 'Add Experience'}>
@@ -85,6 +149,10 @@ export default function ExperiencePage() {
           <div>
             <label className="block text-sm font-medium text-gray-400 mb-1">Description</label>
             <textarea value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} rows={4} className="w-full bg-[#1a1a1a] border border-[#262626] rounded-lg py-2 px-4 text-white focus:border-[#e8b44c] focus:outline-none" required />
+          </div>
+          <div className="flex items-center gap-2">
+            <input type="checkbox" checked={formData.is_published} onChange={(e) => setFormData({...formData, is_published: e.target.checked})} className="accent-[#e8b44c]" />
+            <label className="text-sm text-gray-300 cursor-pointer">Published</label>
           </div>
           <div className="flex justify-end gap-3 pt-4">
             <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-sm text-gray-400 hover:text-white">Cancel</button>
