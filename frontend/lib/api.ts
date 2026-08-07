@@ -1,9 +1,41 @@
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 
-// Public fetch (no auth needed)
+// Public GET fetch
 export async function fetchAPI(endpoint: string) {
   const res = await fetch(`${BACKEND_URL}${endpoint}`);
   if (!res.ok) throw new Error(`Failed to fetch ${endpoint}`);
+  return res.json();
+}
+
+// Public POST fetch (for contact form, chat, etc.)
+export async function postAPI(endpoint: string, data: any) {
+  const res = await fetch(`${BACKEND_URL}${endpoint}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+
+  if (!res.ok) {
+    // Extract error message properly
+    let errorMessage = `Request failed with status ${res.status}`;
+    
+    try {
+      const errorData = await res.json();
+      // FastAPI returns errors in different formats
+      errorMessage = 
+        errorData.detail || 
+        errorData.message || 
+        errorData.error || 
+        JSON.stringify(errorData);
+    } catch {
+      // If we can't parse JSON, use status text
+      errorMessage = res.statusText || errorMessage;
+    }
+    
+    // Always throw a proper Error object
+    throw new Error(errorMessage);
+  }
+
   return res.json();
 }
 
@@ -20,8 +52,20 @@ export async function adminFetch(endpoint: string, options: RequestInit = {}) {
   const res = await fetch(`${BACKEND_URL}${endpoint}`, { ...options, headers });
 
   if (!res.ok) {
-    const error = await res.json().catch(() => ({ detail: 'Request failed' }));
-    throw new Error(error.detail || 'Admin request failed');
+    let errorMessage = `Admin request failed with status ${res.status}`;
+    
+    try {
+      const errorData = await res.json();
+      errorMessage = 
+        errorData.detail || 
+        errorData.message || 
+        errorData.error || 
+        JSON.stringify(errorData);
+    } catch {
+      errorMessage = res.statusText || errorMessage;
+    }
+    
+    throw new Error(errorMessage);
   }
 
   return res.json();

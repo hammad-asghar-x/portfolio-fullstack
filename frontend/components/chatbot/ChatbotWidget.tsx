@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Icon from '../ui/Icon';
 
 export default function ChatbotWidget() {
@@ -7,8 +7,11 @@ export default function ChatbotWidget() {
   const [showBubble, setShowBubble] = useState(false);
   const [chatInput, setChatInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  
   const [messages, setMessages] = useState<{ text: string; isUser: boolean }[]>([
-    { text: "Hi! I'm the portfolio assistant. Ask me anything about YOUR_NAME 🙂", isUser: false }
+    { text: "Hi! I'm the portfolio assistant. Ask me anything about Hammad 🙂", isUser: false }
   ]);
 
   useEffect(() => {
@@ -16,15 +19,48 @@ export default function ChatbotWidget() {
     return () => clearTimeout(timer);
   }, []);
 
-  const handleAsk = (q: string) => {
-    if (!q) return;
-    setMessages(prev => [...prev, { text: q, isUser: true }]);
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const handleAsk = async (question: string) => {
+    if (!question.trim()) return;
+    
+    // Add user message
+    setMessages(prev => [...prev, { text: question, isUser: true }]);
     setChatInput('');
     setIsTyping(true);
-    setTimeout(() => {
+
+    try {
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+      
+      const response = await fetch(`${backendUrl}/api/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: question,
+          session_id: sessionId
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Save session ID for conversation continuity
+        setSessionId(data.session_id);
+        // Add bot response
+        setMessages(prev => [...prev, { text: data.answer, isUser: false }]);
+      } else {
+        setMessages(prev => [...prev, { text: "Sorry, I encountered an error. Please try again.", isUser: false }]);
+      }
+    } catch (error) {
+      console.error('Chat error:', error);
+      setMessages(prev => [...prev, { text: "I'm having trouble connecting to the server. Please try again later.", isUser: false }]);
+    } finally {
       setIsTyping(false);
-      setMessages(prev => [...prev, { text: "Prototype answer — in the real build this comes from the RAG backend (your documents + pgvector).", isUser: false }]);
-    }, 900);
+    }
   };
 
   return (
@@ -77,6 +113,7 @@ export default function ChatbotWidget() {
                 <span className="tdot"></span><span className="tdot"></span><span className="tdot"></span>
               </div>
             )}
+            <div ref={messagesEndRef} />
             {!isTyping && messages.length === 1 && (
               <div className="flex flex-wrap gap-2">
                 {["What are your skills?", "What projects have you built?", "How can I contact you?"].map((q, i) => (

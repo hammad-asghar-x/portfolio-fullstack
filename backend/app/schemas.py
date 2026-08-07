@@ -177,3 +177,28 @@ class ListResponse(BaseModel):
     success: bool = True
     data: List
     total: int
+
+# ============== KNOWLEDGE SCHEMAS (For Chatbot) ==============
+
+class KnowledgeBase(BaseModel):
+    title: str
+    content: str
+    category: Optional[str] = "General"
+    is_published: bool = True
+
+class KnowledgeCreate(KnowledgeBase):
+    pass
+
+class KnowledgeUpdate(BaseModel):
+    title: Optional[str] = None
+    content: Optional[str] = None
+    category: Optional[str] = None
+    is_published: Optional[bool] = None
+
+class KnowledgeResponse(KnowledgeBase):
+    id: int
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
