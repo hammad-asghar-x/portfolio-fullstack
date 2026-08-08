@@ -3,9 +3,21 @@ import { useState, useEffect } from 'react';
 import Icon from '../ui/Icon';
 
 const reviews = [
-  { t: "Delivered our React dashboard ahead of schedule — flawless since launch.", n: "Sarah Mitchell", r: "Product Manager, TechStart" },
-  { t: "Core Web Vitals went green within weeks. Rare mix of performance and design sense.", n: "Priya Sharma", r: "Engineering Lead, Finlio" },
-  { t: "Clean, documented API work, on time. Would hire again.", n: "Daniel Osei", r: "CTO, Brightline" },
+  { 
+    t: "Hammad built our custom e-commerce dashboard from scratch. His React integration was seamless, and he handled the FastAPI backend perfectly. Delivered ahead of schedule.", 
+    n: "Ahmed Raza", 
+    r: "E-commerce Entrepreneur" 
+  },
+  { 
+    t: "We needed a fast, responsive landing page for our educational platform. Hammad optimized our Core Web Vitals and the site now loads instantly on mobile. Highly recommended.", 
+    n: "Ayesha Khan", 
+    r: "EdTech Founder" 
+  },
+  { 
+    t: "Hammad integrated our payment gateway APIs and built a secure admin portal for our team. His code is clean, well-documented, and he communicates very professionally.", 
+    n: "Bilal Ahmed", 
+    r: "Startup Founder" 
+  },
 ];
 
 export default function ReviewsSection() {
