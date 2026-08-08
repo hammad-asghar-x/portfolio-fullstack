@@ -46,28 +46,28 @@ Context:
 User question: {prompt}
 Answer:"""
 
+        # UPDATED MODEL to currently supported one
         chat_completion = client.chat.completions.create(
             messages=[{"role": "user", "content": full_prompt}],
-            model="llama3-8b-8192", 
+            model="llama-3.1-8b-instant",  # Changed from llama3-8b-8192
         )
         return chat_completion.choices[0].message.content
     except Exception as e:
         print(f"Groq API Error: {e}")
-        return "I am having trouble connecting to my AI brain right now. Please try again in a moment."
+        return "I am having trouble connecting to my AI brain right now. Please try again in a moment."    # Lazy import: prevents Windows Application Control from blocking grpc on startup
 
 def gemini_response(prompt: str, context: list[str]) -> str:
     # Lazy import: prevents Windows Application Control from blocking grpc on startup
     try:
-        import google.generativeai as genai
+        from google import genai
     except ImportError:
-        return "Google Generative AI package not installed. Please run: pip install google-generativeai"
+        return "Google GenAI package not installed. Please run: pip install google-genai"
         
     if not settings.GEMINI_API_KEY:
         return "Error: Gemini API key is missing in the backend .env file."
 
     try:
-        genai.configure(api_key=settings.GEMINI_API_KEY)
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        client = genai.Client(api_key=settings.GEMINI_API_KEY)
         context_text = "\n\n".join(context) if context else "No context provided."
         
         full_prompt = f"""You are a professional portfolio assistant for Hammad Asghar. 
@@ -81,11 +81,15 @@ Context:
 User question: {prompt}
 Answer:"""
 
-        response = model.generate_content(full_prompt)
+        # CHANGED to gemini-2.0-flash (which is in your available models list)
+        response = client.models.generate_content(
+            model="gemini-2.0-flash",
+            contents=full_prompt
+        )
         return response.text
     except Exception as e:
         print(f"Gemini API Error: {e}")
-        return "I am having trouble connecting to my AI brain right now. Please try again in a moment."
+        return "I am having trouble connecting to my AI brain right now. Please try again in a moment." 
 
 def ollama_response(prompt: str, context: list[str]) -> str:
     return "Ollama integration pending local setup."

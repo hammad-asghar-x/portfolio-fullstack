@@ -31,3 +31,7 @@ vector_store/
 # OS
 .DS_Store
 Thumbs.db
+
+seed.py
+seed_knowledge.py
+ingest.py
